@@ -103,3 +103,55 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .connected-shell>.login-panel{margin:12px auto;padding:22px 18px}
  .login-panel img{width:90px;margin-bottom:18px}
 }
+
+/* Parts Hub visual family: mist surfaces, charcoal type, quiet teal accents. */
+:root{color-scheme:light;background:#e5ecee;color:#2d3b41;--line:#ccd6d9;--muted:#596970;--green:#3c565b;--accent-gold:#a38c60;--accent-blue:#698b98;--accent-blue-light:#92adb6;--accent-blue-deep:#486b79}
+body{min-height:100vh;background:radial-gradient(ellipse at 8% 0%,#a9bfc8 0,transparent 52%),radial-gradient(ellipse at 90% 45%,#c5d4d0 0,transparent 55%),#e5ecee;background-attachment:fixed;color:#2d3b41;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:15px}
+.connected-shell{max-width:1240px!important;padding-top:26px!important}
+.connected-shell :is(h1,h2,h3,h4){color:#2b3c43;font-weight:650;letter-spacing:-.035em}
+.connected-shell h1{font-size:34px}.connected-shell h2{font-size:20px}
+.connected-shell :is(p,.muted,td small,.brand small,.summary-metrics span,.season-number span,.progress label span,.event footer span,.role-summary span,.hours-hero p){color:#596970}
+.connected-shell .eyebrow{color:#465d66;font-size:10px;font-weight:650;letter-spacing:.18em}
+.connected-top{border:0;padding-bottom:4px}.connected-top .brand{color:#2d4149;letter-spacing:.06em}.connected-top>strong{color:#52666d;font-size:13px}.connected-top .brand-logo{background:#fff;border:1px solid #d4dedf;border-radius:12px;padding:3px}
+.connected-shell button{border:1px solid #c9d4d8;background:#f5f8f8;color:#344b53;border-radius:999px;font-size:13px;font-weight:550;padding:10px 16px;box-shadow:0 1px 2px #334d5510}
+.connected-shell button:hover{background:#e1eaed;border-color:#aabdc4}.connected-shell button:disabled{opacity:.5}
+.connected-shell .primary{background:#3b5358;color:#fff;border-color:#3b5358}.connected-shell .primary:hover{background:#2c4247;border-color:#2c4247}
+.connection-nav{display:flex;align-items:center;gap:4px!important;padding:6px;border:1px solid #ffffffc9;border-radius:999px;background:#f6f9f9c9;box-shadow:0 6px 24px #354c5610;margin:20px 0 36px!important;overflow:auto;flex-wrap:nowrap!important}
+.connection-nav button{flex:1 0 auto;border:1px solid transparent;background:transparent;box-shadow:none;white-space:nowrap;padding:10px 14px;color:#41555e}
+.connection-nav button[aria-pressed=true]{background:#dbe5e8;color:#293f49;border-color:#c8d5da;box-shadow:inset 0 1px #fff}
+.connected-shell :is(.event,.requirement-card,.stat,.schedule-card,.dashboard-card-grid .connected-date,.hours-hero,.event-editor,.notice,.season-summary,.season-requirements){background:#f8fafae8;border:1px solid #ffffffc9;border-radius:18px;box-shadow:0 5px 22px #304b5509}
+.connected-shell>.panel{background:transparent;border:0;padding:0}
+.connected-shell .overview-grid{background:transparent;border:0;gap:18px;margin-bottom:30px;grid-template-columns:1.1fr 1fr}
+.connected-shell .season-summary{border-top:3px solid #7896a1;padding:28px}.connected-shell .season-requirements{border-top:3px solid #ad9871;padding:28px}
+.connected-shell .season-number{font-size:72px;color:#2c424a;font-weight:500;letter-spacing:-3px;margin-top:12px}
+.connected-shell .summary-metrics{border-color:#d9e1e3;gap:14px}.connected-shell .summary-metrics strong{color:#344e58;font-weight:550;font-size:26px}
+.connected-shell .progress{margin:22px 0}.connected-shell progress{height:6px;border-radius:20px}.connected-shell progress::-webkit-progress-bar{background:#dce5e7;border-radius:20px}.connected-shell progress::-webkit-progress-value{border-radius:20px}
+.connected-shell .dashboard-panels>section{background:#f8fafab8;border:1px solid #ffffffb8;border-radius:20px;padding:22px;margin-bottom:24px}
+.connected-shell .dashboard-card-grid{gap:14px}.connected-shell .dashboard-card-grid .connected-date{background:#ffffff80;border:1px solid #d2dde0;border-top:2px solid #99afb6;padding:20px;border-radius:14px}
+.connected-shell :is(.badge,.status-chip){background:#e7eef0;color:#3f5d6b;border:1px solid #c8d7de;border-radius:7px;padding:4px 8px}
+.connected-shell :is(.badge.pending,.badge.required){background:#f1ebde;color:#746343;border-color:#dbcfb7}.connected-shell .badge.rejected{background:#f5e9e7;color:#934c46;border-color:#e3c6c1}
+.connected-shell :is(.connected-school summary,.section-head a,.schedule-meta,.datebox,.schedule-card footer a,.requirement-card span){color:#496c7c}
+.connected-shell .connected-school{border-color:#d1dcdf}.connected-shell .connected-date{border-color:#d8e2e5}.connected-shell .event h3{margin-top:0}.connected-shell .event p{color:#596970}
+.connected-shell :is(input,select,textarea){background:#ffffffc9;border:1px solid #c5d1d6;border-radius:10px;color:#2e424a;padding:12px;font-family:inherit}.connected-shell input::placeholder,.connected-shell textarea::placeholder{color:#78898f}
+.connected-shell .event-editor{color:#344b53;padding:24px}.connected-shell .form-grid{gap:18px}.connected-shell fieldset{border-color:#cbd8dc;border-radius:12px}
+.connected-shell .admin-tabs{border-color:#c9d6db;gap:8px}.connected-shell .admin-tabs button{background:#f6f9f9b0;color:#526770;border:1px solid #cbd7db}.connected-shell .admin-tabs button[aria-pressed=true]{background:#3b5358;color:white;border-color:#3b5358}
+.connected-shell .table-wrap{background:#f8fafae6;border:1px solid #d4dfe2;border-radius:14px}.connected-shell th{background:#eaf0f2;color:#526971;font-weight:600}.connected-shell td{color:#344951;border-color:#dce5e8}
+.connected-shell :is(.category-grid>div,.role-summary>div){background:#f7fafacf;color:#405963;border-color:#d1dde1;border-radius:12px}.connected-shell .hours-hero{color:#304751;padding:26px}.connected-shell .hours-hero strong{color:#304751;font-weight:550}.connected-shell .requirement-card b{color:#304751}
+.connected-shell>.login-panel{background:#f8fafae8;border:1px solid #c4d1d6;border-radius:22px;box-shadow:0 18px 50px #344f5810;padding:36px;margin:60px auto}.connected-shell .login-panel h1{font-size:30px}.connected-shell .login-panel img{border-radius:15px;background:white;padding:8px;width:100px}
+.connected-shell input[type=file]::file-selector-button{background:#e8eff1;color:#344b53;border-color:#c6d5da;border-radius:7px}.connected-shell .error{color:#a63834}.connected-shell .submission-details{font-size:13px;margin-top:14px}.connected-shell .submission-details summary{color:#496c7c;cursor:pointer}
+.connected-shell :is(button,a,input,select,textarea):focus-visible{outline:3px solid #688f9e;outline-offset:3px}
+@media(max-width:700px){
+ .connected-shell{padding-top:16px!important}.connected-top>strong{color:#52666d}.connected-shell h1{font-size:28px}
+ .connection-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));border-radius:22px;padding:6px;margin:14px 0 26px!important;overflow:visible;gap:4px!important}
+ .connection-nav button{min-width:0;white-space:normal;padding:8px 2px;font-size:11px;line-height:1.35;border-radius:15px;min-height:46px}
+ .connected-shell .overview-grid{grid-template-columns:minmax(0,1fr);gap:14px}.connected-shell .season-summary,.connected-shell .season-requirements{padding:22px;border-top-width:3px}.connected-shell .season-number{font-size:60px}
+ .connected-shell .dashboard-panels>section{padding:16px}.connected-shell .dashboard-card-grid .connected-date{padding:18px}.connected-shell .event{padding:20px}.connected-shell .event-editor{padding:18px}
+ .connected-shell .toolbar:has([data-signup-filter]){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.connected-shell .toolbar:has([data-signup-filter])>*{width:auto;padding:10px 8px}
+ .connected-shell>.login-panel{margin:24px auto;padding:26px 22px}
+}
+/* Multi-student assignment picker */
+.assignment-students{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:420px;overflow:auto;padding:14px;border:1px solid #ccd6d9;border-radius:14px}
+.assignment-students .check-row{display:flex;align-items:center;gap:12px;min-height:48px;padding:10px;margin:0;border-radius:8px;background:#f4f7f8;cursor:pointer}
+.assignment-students input[type=checkbox]{width:20px!important;height:20px;flex:0 0 20px;margin:0;accent-color:#3c565b}
+.assignment-students small{display:block;font-size:12px;color:#596970}
+.assignment-students .check-row:has(input:disabled){opacity:.6;cursor:default}
