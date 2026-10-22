@@ -28,12 +28,12 @@
   <main>
     <p class="brand">Avenger Volunteer Hub</p>
     <h1>Privacy</h1>
-    <p class="date">Updated October 12, 2026</p>
+    <p class="date">Updated October 22, 2026</p>
     <p>Avenger Volunteer Hub helps the robotics team organize volunteer events, assignments, attendance, hours, and certifications. This notice describes the data used by the app.</p>
 
     <h2>Information the app uses</h2>
     <ul>
-      <li><strong>Account details:</strong> student ID used to sign in, name, grade, active membership, and an internal account identifier. Existing members sign in with their student ID. New accounts also require the team access code.</li>
+      <li><strong>Account details:</strong> student ID used to sign in, name, grade, active membership, and an internal account identifier. Mentor accounts use school email addresses and separate private sign-in codes. Existing members sign in with their student ID. New accounts also require the team access code.</li>
       <li><strong>Volunteer records:</strong> event signups, selected roles, required assignments, attendance, activity dates, requested and approved hours, review decisions, and student or administrator notes.</li>
       <li><strong>Certifications and evidence:</strong> certification type, organization, earned and expiry dates, review status, uploaded photos or certificate files, file names, file types, file sizes, and links or identifiers connecting files to submissions. Existing records and photo links imported from the earlier hub are also used.</li>
       <li><strong>Sign-in information:</strong> authentication sessions and login-attempt counters. The login service uses hashed student-ID and IP-address values for sign-in lookup and attempt limits. The app keeps its authentication session in the browser tab's session storage.</li>
@@ -45,6 +45,7 @@
     <h2>Storage and access</h2>
     <p>The website is hosted on GitHub Pages. Supabase provides the app's database, authentication, and backend functions. Uploaded evidence files are stored in the team's Google Drive folder; Supabase stores their associated submission details and file identifiers.</p>
     <p>Student screens show the signed-in student's personal records and team opportunities. Administrator access is unlocked from a student account with the shared administrator code and provides access to team records for event management and review. Keep student IDs and access codes private.</p>
+    <p>Authorized mentors can manage competitions for their assigned schools, view the associated volunteer rosters, request more volunteers, and view active students' names, grades, and certification summaries for recruitment. In-app access to certificate documents is limited to students on the mentor's competition rosters. Mentor access does not include students' hour submissions or attendance photos.</p>
     <p>People with access to the underlying Google Drive folder or individual shared files may also be able to view those files according to their Google Drive permissions. Opening an older photo link uses that file's existing sharing settings.</p>
 
     <h2>Google Drive connection</h2>

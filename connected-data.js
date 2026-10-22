@@ -10,7 +10,17 @@ function visibleRecord(table,row){
 }
 export function createRepository(client){
  async function rows(table,query=x=>x){const result=await query(client.from(table).select('*'));if(result.error)throw result.error;return (result.data||[]).filter(row=>visibleRecord(table,row));}
+ async function operation(name,args){const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
  return {
+  mentorStatus(){return operation('hub_mentor_status');},
+  loadMentor(){return operation('hub_mentor_workspace');},
+  saveMentorEvent(id,payload){return operation('hub_mentor_save_event',{p_id:id||null,p_data:payload});},
+  requestVolunteers(session,count,role,note){return operation('hub_mentor_request_volunteers',{p_session:session,p_count:count,p_role:role||null,p_note:note||''});},
+  closeVolunteerRequest(id){return operation('hub_close_volunteer_request',{p_id:id});},
+  volunteerRequests(){return operation('hub_volunteer_requests');},
+  adminMentors(){return operation('hub_admin_mentors');},
+  resetMentorCode(slug){return operation('hub_admin_reset_mentor_code',{p_slug:slug});},
+  updateMentorEmail(slug,email){return operation('hub_admin_update_mentor_email',{p_slug:slug,p_email:email});},
   async load(){
    const {data,error}=await client.auth.getUser();if(error)throw error;if(!data.user)throw Error('Sign in to continue.');
    const profileResult=await client.rpc('hub_my_profile');if(profileResult.error)throw profileResult.error;
