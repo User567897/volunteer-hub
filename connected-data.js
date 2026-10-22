@@ -23,14 +23,13 @@ export function createRepository(client){
   updateMentorEmail(slug,email){return operation('hub_admin_update_mentor_email',{p_slug:slug,p_email:email});},
   async load(){
    const {data,error}=await client.auth.getUser();if(error)throw error;if(!data.user)throw Error('Sign in to continue.');
-   const profileResult=await client.rpc('hub_my_profile');if(profileResult.error)throw profileResult.error;
+   const [profileResult,available,status]=await Promise.all([client.rpc('hub_my_profile'),client.rpc('hub_availability'),client.rpc('hub_admin_status')]);
+   if(profileResult.error)throw profileResult.error;if(available.error)throw available.error;if(status.error)throw status.error;
    const members=profileResult.data||[];
    const profile=members[0];if(!profile?.active)throw Error('Your account is not linked to an active team member yet. Ask the team administrator to connect it.');
    const [events,roles,signups,hours,certificates,attachments]=await Promise.all([
     rows('hub_sessions',q=>q.order('date',{ascending:true})),rows('hub_session_roles'),
     rows('hub_signups',q=>q.eq('person_id',profile.id)),rows('hub_hours',q=>q.eq('person_id',profile.id).order('date',{ascending:false})),rows('hub_certifications',q=>q.eq('person_id',profile.id)),rows('hub_attachments',q=>q.eq('person_id',profile.id))]);
-   const available=await client.rpc('hub_availability');if(available.error)throw available.error;
-   const status=await client.rpc('hub_admin_status');if(status.error)throw status.error;
    return {isAdmin:status.data===true,profile,events:events.map(e=>({...e,signed_count:available.data.find(a=>a.session_id===e.id)?.signed_count||0,roles:roles.filter(r=>r.session_id===e.id).map(r=>({...r,taken:available.data.find(a=>a.session_id===e.id)?.role_counts?.[r.name]||0}))})),signups,hours,certificates,attachments};
   },
   async evidence(form){const {data,error}=await client.functions.invoke('drive-evidence',{body:form});if(error){let message='Upload failed. Please try again.';try{const detail=await error.context.json();message=detail.error||message;}catch{}throw Error(message);}return data;},
