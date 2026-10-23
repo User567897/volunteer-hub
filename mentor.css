@@ -39,3 +39,12 @@
 .mentor-workspace .mentor-account button{padding:9px 14px}
 @media(max-width:900px){.mentor-workspace .mentor-nav,.mentor-workspace .mentor-content{grid-column:1;grid-row:auto}.mentor-workspace header.mentor-topbar{margin-bottom:28px}}
 @media(max-width:600px){.mentor-workspace header.mentor-topbar{gap:14px;flex-wrap:wrap;margin-bottom:27px}.mentor-workspace .mentor-account button{padding:9px}}
+
+/* Requests always identify one scheduled date, including recurring practices. */
+.mentor-workspace .mentor-date-focus{padding:18px 19px;margin:0 0 22px;border:1px solid #8c7046;border-radius:17px;background:linear-gradient(125deg,#b68a3d15,transparent 65%),#302a25}
+.mentor-workspace .mentor-date-focus>strong{display:block;color:#f5e4c2;font-size:17px;line-height:1.45;margin:8px 0 12px;overflow-wrap:anywhere}
+.mentor-workspace .mentor-date-focus>p{color:#ead0a2;font-size:14px;line-height:1.7}.mentor-workspace .mentor-date-focus>p.mentor-eyebrow{font-size:9px;color:#c6ab7d;margin:0}
+.mentor-workspace .mentor-date-focus>small{display:block;color:#c1adbd;font-size:11px;margin-top:12px;line-height:1.65}
+.mentor-workspace .mentor-request-date{padding:11px 0;border-top:1px solid #544450;border-bottom:1px solid #544450;margin:13px 0}
+.mentor-workspace .mentor-request-date>p{color:#ddc5eb;font-size:12px;line-height:1.7;margin:0}.mentor-workspace .mentor-request-date>small{display:block;color:#b8a8bf;font-size:10px;margin-top:5px}
+@media(max-width:600px){.mentor-workspace .mentor-date-focus{padding:17px 15px}.mentor-workspace .mentor-date-focus>strong{font-size:16px}.mentor-workspace .mentor-date-focus>p{font-size:13px}}

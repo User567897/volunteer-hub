@@ -9,7 +9,12 @@ const openRequest = request => String(request.status || 'Open').toLowerCase() ==
 export const requestRemaining = request => Math.max(0, Number(request.remaining_count ?? request.needed_count) || 0);
 export function mentorDriveLink(value) { try { const url = new URL(value); return url.protocol === 'https:' && url.hostname === 'drive.google.com' ? url.href : ''; } catch { return ''; } }
 const activeSignup = signup => signup.status !== 'Cancelled';
-const schoolName = event => event.competition_school || 'Other';
+export function mentorSessionType(event = {}) { return ['mentoring','mentorship'].includes(String(event.category || '').toLowerCase()) ? 'Mentorship' : 'Competition'; }
+export function mentorSessionSchool(event = {}, programs = []) {
+  if (mentorSessionType(event) === 'Competition') return event.competition_school || 'Other';
+  return event.mentor_school || programs.find(program => program.id === event.program_id)?.mentor_school || 'School not assigned';
+}
+const sessionLabel = event => mentorSessionType(event) === 'Mentorship' ? 'Mentorship practice' : 'Competition';
 const paths = {
   calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/>',
   certificate:'<circle cx="12" cy="8" r="5"/><path d="m8 12-2 9 6-3 6 3-2-9"/>',
@@ -43,15 +48,16 @@ export function parseMentorRoles(text) {
   return roles;
 }
 
-export function selectMentorEvents(data, {period='Upcoming',school='All',sort='date',query='',date=today()} = {}) {
+export function selectMentorEvents(data, {period='Upcoming',school='All',type='All',sort='date',query='',date=today()} = {}) {
   const signups = data.signups || [];
+  const schoolName = event => mentorSessionSchool(event,data.programs || []);
   const count = id => signups.filter(row => row.session_id === id && activeSignup(row)).length;
   const need = event => Number(event.capacity) > 0 ? Math.max(0, Number(event.capacity) - count(event.id)) : 0;
   const result = (data.events || []).filter(event => {
     const future = event.date >= date;
     return (period === 'All' || period === 'Upcoming' && future || period === 'Past' && !future) &&
-      (school === 'All' || schoolName(event) === school) &&
-      [event.name,schoolName(event),event.location].join(' ').toLowerCase().includes(query.trim().toLowerCase());
+      (school === 'All' || schoolName(event) === school) && (type === 'All' || mentorSessionType(event) === type) &&
+      [event.name,schoolName(event),event.location,sessionLabel(event)].join(' ').toLowerCase().includes(query.trim().toLowerCase());
   });
   return result.sort((a,b) => {
     const byDate = String(a.date || '').localeCompare(String(b.date || '')) || String(a.start_time || '').localeCompare(String(b.start_time || ''));
@@ -64,13 +70,13 @@ export function selectMentorEvents(data, {period='Upcoming',school='All',sort='d
   });
 }
 
-const normalize = value => ({...value, mentor:value?.mentor || {}, events:value?.events || [],roles:value?.roles || [],signups:value?.signups || [],people:value?.people || [],certificates:value?.certificates || [],certificate_attachments:value?.certificate_attachments || [],requests:value?.requests || []});
+const normalize = value => ({...value, mentor:value?.mentor || {}, events:value?.events || [],programs:value?.programs || [],roles:value?.roles || [],signups:value?.signups || [],people:value?.people || [],certificates:value?.certificates || [],certificate_attachments:value?.certificate_attachments || [],requests:value?.requests || []});
 
 /** Mounts an authenticated mentor workspace. update() refreshes without discarding drafts. */
 export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   if (!root || !repo?.loadMentor) throw new Error('A mentor root and repository are required.');
-  let data = normalize(initialData), revision, destroyed = false, busy = false, refreshing = false;
-  let view = 'competitions', period = 'Upcoming', school = 'All', sort = 'date', query = '', selectedId = '';
+  let data = normalize(initialData), revision, destroyed = false, busy = false, refreshing = false, loaded = !!initialData;
+  let view = 'competitions', period = 'Upcoming', school = 'All', type = 'All', sort = 'date', query = '', selectedId = '';
   let editor = null, requestFor = '', dirty = false, certificateQuery = '', certificateFilter = 'All', requestFilter = 'Open';
   let rosterQuery = '', notice = '', noticeKind = 'success', loadedAt;
   const controller = new AbortController();
@@ -85,7 +91,13 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   const hasDraft = () => dirty || editor !== null || !!requestFor;
   const fieldFocused = () => root.contains(document.activeElement) && document.activeElement.matches('input,select,textarea');
   const activePeople = () => data.people.filter(row => row.active !== false).sort((a,b) => a.name.localeCompare(b.name));
+  const schoolName = event => mentorSessionSchool(event,data.programs);
+  const canCompetition = () => loaded && data.mentor.competition_access !== false;
+  const allSchools = () => canCompetition() && !!data.mentor.all_competitions;
+  const canEdit = event => !!event && canCompetition() && mentorSessionType(event) === 'Competition';
+  const scopes = () => [canCompetition() ? 'competitions' : '',data.mentor.mentorship_access ? 'practice dates' : ''].filter(Boolean).join(' and ');
   const schools = () => [...new Set(['Whitlow','Sawnee','Otwell','Other',...data.events.map(schoolName)])];
+  const filteredEvents = () => selectMentorEvents(data,{period,school,type,sort,query});
 
   function announce(message, kind='success') {
     notice = message; noticeKind = kind;
@@ -116,19 +128,19 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   }
 
   function competitionCards() {
-    const events = selectMentorEvents(data,{period,school,sort,query});
+    const events = filteredEvents();
     return events.length ? events.map(event => {
       const signed = eventSignups(event.id).length, capacity = Number(event.capacity), need = capacity > 0 ? Math.max(0,capacity-signed) : null;
       const requests = eventRequests(event.id).filter(request => openRequest(request) && requestRemaining(request) > 0);
       return `<article class="mentor-event-card ${selectedId === event.id ? 'is-selected' : ''}">
-        <div class="mentor-card-meta"><span>${escape(schoolName(event))}</span><span class="mentor-badge ${event.active === false ? '' : 'success'}">${event.active === false ? 'Hidden' : event.date < today() ? 'Past' : 'Published'}</span></div>
+        <div class="mentor-card-meta"><span>${escape(schoolName(event))}</span><span class="mentor-badge ${event.active === false ? '' : 'success'}">${mentorSessionType(event) === 'Mentorship' ? 'Practice' : 'Competition'} · ${event.active === false ? 'Hidden' : event.date < today() ? 'Past' : 'Published'}</span></div>
         <h3><button type="button" data-mentor-action="select-event" data-id="${escape(event.id)}" aria-pressed="${selectedId === event.id}">${escape(event.name)}${icon('arrow')}</button></h3>
         <p class="mentor-date">${escape(displayDate(event.date))}</p><p>${escape(timeRange(event))}</p>
         ${event.location ? `<p class="mentor-location">${escape(event.location)}</p>` : ''}
         <div class="mentor-card-foot"><span><strong>${signed}${capacity > 0 ? ` / ${capacity}` : ''}</strong> volunteers</span><span>${need === null ? 'Open capacity' : need ? `${need} spots open` : 'Full'}</span></div>
         ${requests.length ? `<span class="mentor-request-marker">${requests.length} open volunteer request${requests.length === 1 ? '' : 's'}</span>` : ''}
       </article>`;
-    }).join('') : `<div class="mentor-empty"><h3>No competitions found</h3><p>Try another date or school filter.</p></div>`;
+    }).join('') : `<div class="mentor-empty"><h3>No sessions found</h3><p>Try another date, type, or school filter.</p></div>`;
   }
 
   function rosterRows(event) {
@@ -143,7 +155,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     if (requestFor !== event.id) return '';
     const roles = eventRoles(event.id);
     return `<section class="mentor-form-panel" aria-labelledby="mentor-request-title"><div class="mentor-section-heading"><h3 id="mentor-request-title">Request volunteers</h3><button type="button" class="mentor-icon-button" data-mentor-action="cancel-request" aria-label="Cancel volunteer request">${icon('close')}</button></div>
-      <p>Post the number of additional volunteers you need for this competition.</p><form data-mentor-edit-form id="mentor-request-form" data-session="${escape(event.id)}">
+      <div class="mentor-date-focus"><p class="mentor-eyebrow">${escape(schoolName(event))} · ${escape(sessionLabel(event))}</p><strong>${escape(event.name)}</strong><p>${escape(displayDate(event.date))}</p><p>${escape(timeRange(event))}</p><small>${mentorSessionType(event) === 'Mentorship' ? 'This practice date only — not the whole series.' : 'This event date only.'}</small></div><form data-mentor-edit-form id="mentor-request-form" data-session="${escape(event.id)}">
       <div class="mentor-form-pair"><label>Additional volunteers<input name="count" type="number" inputmode="numeric" min="1" max="100" step="1" value="1" required></label><label>Role${roles.length ? `<select name="role">${roles.map(role => `<option value="${escape(role.name)}">${escape(role.name)}</option>`).join('')}</select>` : '<input name="role" value="Volunteer" readonly><span class="mentor-field-hint">No separate roles are set for this event.</span>'}</label></div>
       <label>Note to students<textarea name="note" rows="3" maxlength="1000" placeholder="Where to meet, what to bring, or who can help"></textarea></label><div class="mentor-form-actions"><button type="submit" class="mentor-primary">${icon('people')}Post volunteer request</button><button type="button" data-mentor-action="cancel-request">Cancel</button></div></form></section>`;
   }
@@ -155,7 +167,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
       const amount = openRequest(request) ? remaining : Number(request.needed_count), roleLabel = request.role && request.role !== 'Volunteer' ? `${escape(request.role)} volunteer${amount === 1 ? '' : 's'}` : `volunteer${amount === 1 ? '' : 's'}`;
       return `<article class="mentor-request-card"><div class="mentor-card-meta"><span>${escape(event ? schoolName(event) : '')}</span><span class="mentor-badge ${openRequest(request) && !fulfilled ? 'pending' : 'success'}">${fulfilled ? 'Filled' : escape(request.status || 'Open')}</span></div>
         <h3>${openRequest(request) ? `${remaining} more` : escape(request.needed_count)} ${roleLabel}</h3><p class="mentor-fine">${fulfilled ? 'The requested spots are filled.' : openRequest(request) ? `${remaining} still needed · ${escape(request.needed_count)} originally requested` : `${escape(request.needed_count)} originally requested`}</p>
-        ${!compact ? `<p><strong>${escape(event?.name || 'Competition')}</strong></p><p>${escape(displayDate(event?.date))}</p>` : ''}
+        ${!compact ? `<p><strong>${escape(event?.name || 'School session')}</strong></p>` : ''}<div class="mentor-request-date"><p>${escape(displayDate(event?.date))} · ${escape(event ? timeRange(event) : 'Time to be confirmed')}</p><small>${event && mentorSessionType(event) === 'Mentorship' ? 'This practice date only' : 'This event date only'}</small></div>
         ${request.note ? `<p class="mentor-request-note">${escape(request.note)}</p>` : ''}<p class="mentor-fine">${escape(request.mentor_name || data.mentor.name)}${request.created_at ? ` · ${escape(displayDate(String(request.created_at).slice(0,10)))}` : ''}</p>
         ${openRequest(request) ? `<button type="button" data-mutation data-mentor-action="close-request" data-id="${escape(request.id)}">Close request</button>` : '<p class="mentor-fine">This request is closed.</p>'}</article>`;
     }).join('') : '<div class="mentor-empty"><p>No volunteer requests here.</p></div>';
@@ -165,17 +177,17 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     const event = selected();
     if (!event) return '';
     const roles = eventRoles(event.id), signups = eventSignups(event.id);
-    return `<section class="mentor-roster mentor-surface" aria-labelledby="mentor-roster-title"><div class="mentor-section-heading"><div><p class="mentor-eyebrow">${escape(schoolName(event))} · COMPETITION ROSTER</p><h2 id="mentor-roster-title">${escape(event.name)}</h2></div><span class="mentor-roster-total"><strong>${signups.length}</strong><small>volunteers</small></span></div>
+    return `<section class="mentor-roster mentor-surface" aria-labelledby="mentor-roster-title"><div class="mentor-section-heading"><div><p class="mentor-eyebrow">${escape(schoolName(event))} · ${mentorSessionType(event) === 'Mentorship' ? 'PRACTICE DATE' : 'COMPETITION'} ROSTER</p><h2 id="mentor-roster-title">${escape(event.name)}</h2></div><span class="mentor-roster-total"><strong>${signups.length}</strong><small>volunteers</small></span></div>
       <p class="mentor-date">${escape(displayDate(event.date))} · ${escape(timeRange(event))}</p>${event.location ? `<p>${escape(event.location)}</p>` : ''}${event.description ? `<p class="mentor-description">${escape(event.description)}</p>` : ''}
-      <div class="mentor-roster-actions"><button type="button" class="mentor-primary" data-mentor-action="open-request" data-id="${escape(event.id)}">${icon('people')}Request volunteers</button><button type="button" data-mentor-action="edit-event" data-id="${escape(event.id)}">${icon('edit')}Edit competition</button></div>
+      <div class="mentor-roster-actions"><button type="button" class="mentor-primary" data-mentor-action="open-request" data-id="${escape(event.id)}">${icon('people')}Request volunteers for this date</button>${canEdit(event) ? `<button type="button" data-mentor-action="edit-event" data-id="${escape(event.id)}">${icon('edit')}Edit competition</button>` : ''}</div>
       ${roles.length ? `<div class="mentor-role-summary">${roles.map(role => `<span><strong>${escape(role.name)}</strong>${signups.filter(signup => signup.role === role.name).length}${Number(role.capacity) > 0 ? ` / ${Number(role.capacity)}` : ''} signed up</span>`).join('')}</div>` : ''}
       ${requestForm(event)}<div class="mentor-roster-filter"><label><span class="mentor-visually-hidden">Search this roster</span><input id="mentor-roster-search" type="search" placeholder="Search this roster" value="${escape(rosterQuery)}"></label></div>
-      <div class="mentor-table-scroll" tabindex="0" role="region" aria-label="Competition volunteer roster"><table><thead><tr><th>Student</th><th>Role</th><th>Status</th><th>Certifications</th></tr></thead><tbody data-mentor-roster-rows>${rosterRows(event)}</tbody></table></div>
+      <div class="mentor-table-scroll" tabindex="0" role="region" aria-label="${escape(sessionLabel(event))} volunteer roster"><table><thead><tr><th>Student</th><th>Role</th><th>Status</th><th>Certifications</th></tr></thead><tbody data-mentor-roster-rows>${rosterRows(event)}</tbody></table></div>
       ${eventRequests(event.id).length ? `<div class="mentor-section-heading mentor-inner-heading"><h3>Volunteer requests</h3></div><div class="mentor-request-grid">${requestCards(eventRequests(event.id).slice().sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))),true)}</div>` : ''}</section>`;
   }
 
   function competitionEditor() {
-    if (editor === null) return '';
+    if (editor === null || !canCompetition()) return '';
     const event = editor, roles = event.id ? eventRoles(event.id) : [], scopedSchool = data.mentor.school_scope;
     return `<section class="mentor-form-panel mentor-competition-editor" aria-labelledby="mentor-editor-title"><div class="mentor-section-heading"><div><p class="mentor-eyebrow">COMPETITION DETAILS</p><h2 id="mentor-editor-title">${event.id ? 'Edit competition' : 'Create competition'}</h2></div><button type="button" class="mentor-icon-button" data-mentor-action="cancel-editor" aria-label="Cancel competition editor">${icon('close')}</button></div>
       <form data-mentor-edit-form id="mentor-event-form" data-id="${escape(event.id || '')}">
@@ -192,12 +204,12 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   }
 
   function competitions() {
-    const visible = selectMentorEvents(data,{period,school,sort,query});
+    const visible = filteredEvents();
     if (!selectedId && visible.length) selectedId = visible[0].id;
-    return `<div class="mentor-section-heading"><div><p class="mentor-eyebrow">${data.mentor.all_competitions ? 'ALL SCHOOLS' : escape(data.mentor.school_scope || 'YOUR SCHOOL')}</p><h1>Competitions</h1></div><button type="button" class="mentor-primary" data-mentor-action="new-event">${icon('plus')}Create competition</button></div>
+    return `<div class="mentor-section-heading"><div><p class="mentor-eyebrow">${allSchools() ? 'ALL COMPETITIONS' : escape(data.mentor.school_scope || 'YOUR SCHOOL')}</p><h1>School sessions</h1></div>${canCompetition() ? `<button type="button" class="mentor-primary" data-mentor-action="new-event">${icon('plus')}Create competition</button>` : ''}</div>
       ${competitionEditor()}
-      <div class="mentor-filter-bar"><label>Dates<select id="mentor-period">${['Upcoming','Past','All'].map(value => `<option ${period === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label>${data.mentor.all_competitions ? `<label>School<select id="mentor-school"><option>All</option>${schools().map(value => `<option ${school === value ? 'selected' : ''}>${escape(value)}</option>`).join('')}</select></label>` : ''}<label>Sort<select id="mentor-sort">${[['date','Date · soonest'],['date-desc','Date · latest'],['school','School'],['name','Competition name'],['status','Published status'],['need','Most open spots']].map(([value,label]) => `<option value="${value}" ${sort === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label class="mentor-search-label">Find a competition<input id="mentor-event-search" type="search" value="${escape(query)}" placeholder="Name, school, or location"></label></div>
-      <p class="mentor-fine" data-mentor-event-count>${visible.length} competition${visible.length === 1 ? '' : 's'}</p><div class="mentor-event-grid" data-mentor-event-grid>${competitionCards()}</div><div data-mentor-roster>${roster()}</div>`;
+      <div class="mentor-filter-bar"><label>Dates<select id="mentor-period">${['Upcoming','Past','All'].map(value => `<option ${period === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label><label>Type<select id="mentor-type"><option value="All">All sessions</option>${canCompetition() ? `<option value="Competition" ${type === 'Competition' ? 'selected' : ''}>Competitions</option>` : ''}${data.mentor.mentorship_access ? `<option value="Mentorship" ${type === 'Mentorship' ? 'selected' : ''}>Mentorship practices</option>` : ''}</select></label>${allSchools() ? `<label>School<select id="mentor-school"><option>All</option>${schools().map(value => `<option ${school === value ? 'selected' : ''}>${escape(value)}</option>`).join('')}</select></label>` : ''}<label>Sort<select id="mentor-sort">${[['date','Date · soonest'],['date-desc','Date · latest'],['school','School'],['name','Session name'],['status','Published status'],['need','Most open spots']].map(([value,label]) => `<option value="${value}" ${sort === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label class="mentor-search-label">Find a session<input id="mentor-event-search" type="search" value="${escape(query)}" placeholder="Name, school, or location"></label></div>
+      <p class="mentor-fine" data-mentor-event-count>${visible.length} session${visible.length === 1 ? '' : 's'}</p><div class="mentor-event-grid" data-mentor-event-grid>${competitionCards()}</div><div data-mentor-roster>${roster()}</div>`;
   }
 
   function certificateDirectory() {
@@ -219,14 +231,14 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   }
   function requests() {
     const requests = data.requests.filter(request => requestFilter === 'All' || (requestFilter === 'Open' ? openRequest(request) : !openRequest(request))).sort((a,b) => String(b.created_at).localeCompare(String(a.created_at)));
-    return `<div class="mentor-section-heading"><div><p class="mentor-eyebrow">VOLUNTEER COVERAGE</p><h1>Requests</h1></div><button type="button" data-mentor-action="requests-browse">${icon('calendar')}Choose a competition</button></div><p class="mentor-muted">Open a competition roster to request more volunteers.</p><div class="mentor-filter-bar"><label>Show<select id="mentor-request-status">${['Open','Closed','All'].map(value => `<option ${requestFilter === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label></div><div class="mentor-request-grid">${requestCards(requests)}</div>`;
+    return `<div class="mentor-section-heading"><div><p class="mentor-eyebrow">VOLUNTEER COVERAGE</p><h1>Requests</h1></div><button type="button" data-mentor-action="requests-browse">${icon('calendar')}Choose a session</button></div><p class="mentor-muted">Choose the specific practice or competition date, then request volunteers for that date.</p><div class="mentor-filter-bar"><label>Show<select id="mentor-request-status">${['Open','Closed','All'].map(value => `<option ${requestFilter === value ? 'selected' : ''}>${value}</option>`).join('')}</select></label></div><div class="mentor-request-grid">${requestCards(requests)}</div>`;
   }
 
   function render() {
     if (destroyed) return;
-    root.innerHTML = `<div class="mentor-workspace"><header class="mentor-topbar"><a class="mentor-brand" href="#" data-mentor-action="home"><img src="./avenger-logo.png" alt="Avenger Robotics" width="43" height="43"><span>AVENGER<small>MENTOR WORKSPACE</small></span></a><div class="mentor-account"><span><strong>${escape(data.mentor.name || 'Mentor')}</strong><small>${data.mentor.all_competitions ? 'All competitions' : escape(data.mentor.school_scope || 'Competition access')}</small></span><button type="button" data-mentor-action="signout" aria-label="Sign out">${icon('signout')}<span>Sign out</span></button></div></header>
-      <div class="mentor-layout"><nav class="mentor-nav" aria-label="Mentor navigation">${[['competitions','calendar','Competitions'],['certificates','certificate','Certifications'],['requests','people','Requests']].map(([id,symbol,label]) => `<button type="button" data-mentor-action="view" data-view="${id}" aria-pressed="${view === id}">${icon(symbol)}<span>${label}</span></button>`).join('')}<button type="button" data-mentor-action="refresh" class="mentor-refresh">${icon('refresh')}<span>Refresh</span></button><p data-mentor-sync class="mentor-sync"></p></nav>
-      <main class="mentor-content"><div data-mentor-notice class="mentor-notice ${noticeKind === 'error' ? 'is-error' : ''}" role="status" ${!notice ? 'hidden' : ''}>${escape(notice)}</div>${view === 'competitions' ? competitions() : view === 'certificates' ? certificates() : requests()}</main></div></div>`;
+    root.innerHTML = `<div class="mentor-workspace"><header class="mentor-topbar"><a class="mentor-brand" href="#" data-mentor-action="home"><img src="./avenger-logo.png" alt="Avenger Robotics" width="43" height="43"><span>AVENGER<small>MENTOR WORKSPACE</small></span></a><div class="mentor-account"><span><strong>${escape(data.mentor.name || 'Mentor')}</strong><small>${allSchools() ? 'All competitions' : escape(data.mentor.school_scope || 'School sessions')}${data.mentor.mentorship_access ? ` · ${escape(scopes())}` : ''}</small></span><button type="button" data-mentor-action="signout" aria-label="Sign out">${icon('signout')}<span>Sign out</span></button></div></header>
+      <div class="mentor-layout"><nav class="mentor-nav" aria-label="Mentor navigation">${[['competitions','calendar','Sessions'],['certificates','certificate','Certifications'],['requests','people','Requests']].map(([id,symbol,label]) => `<button type="button" data-mentor-action="view" data-view="${id}" aria-pressed="${view === id}">${icon(symbol)}<span>${label}</span></button>`).join('')}<button type="button" data-mentor-action="refresh" class="mentor-refresh">${icon('refresh')}<span>Refresh</span></button><p data-mentor-sync class="mentor-sync"></p></nav>
+      <main class="mentor-content"><div data-mentor-notice class="mentor-notice ${noticeKind === 'error' ? 'is-error' : ''}" role="status" ${!notice ? 'hidden' : ''}>${escape(notice)}</div>${!loaded ? '<div class="mentor-empty"><p>Loading school sessions…</p></div>' : view === 'competitions' ? competitions() : view === 'certificates' ? certificates() : requests()}</main></div></div>`;
     if (editor !== null) updateHoursCalculation(root.querySelector('#mentor-event-form'));
     syncStatus(); setBusy(busy);
   }
@@ -243,9 +255,10 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
       let nextRevision;
       if (typeof repo.scheduleRevision === 'function') { try { nextRevision = await repo.scheduleRevision(); } catch {} }
       if (destroyed || hasDraft() || fieldFocused()) return false;
-      data = next; loadedAt = new Date(); revision = nextRevision;
+      data = next; loaded = true; loadedAt = new Date(); revision = nextRevision;
       if (!data.events.some(event => event.id === selectedId)) selectedId = '';
-      if (data.mentor.school_scope) school = data.mentor.school_scope;
+      if (type === 'Competition' && !canCompetition() || type === 'Mentorship' && !data.mentor.mentorship_access) type = 'All';
+      if (data.mentor.school_scope && !allSchools()) school = data.mentor.school_scope;
       render(); return true;
     } catch (error) { if (!destroyed) announce(error.message || 'The mentor workspace could not be refreshed.', 'error'); if (options.throwOnError) throw error; return false; }
     finally { refreshing = false; if (!destroyed) syncStatus(); }
@@ -285,9 +298,9 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     if (action === 'signout') { await onSignOut?.(); return; }
     if (action === 'view') { view = button.dataset.view; notice = ''; render(); return; }
     if (action === 'home' || action === 'requests-browse') { view = 'competitions'; notice = ''; render(); return; }
-    if (action === 'new-event') { view = 'competitions'; editor = {}; render(); root.querySelector('.mentor-competition-editor')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-event-form [name=name]')?.focus({preventScroll:true}); return; }
-    if (action === 'edit-event') { view = 'competitions'; editor = {...data.events.find(row => row.id === button.dataset.id)}; render(); root.querySelector('.mentor-competition-editor')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-event-form [name=name]')?.focus({preventScroll:true}); return; }
-    if (action === 'open-request') { requestFor = button.dataset.id; render(); root.querySelector('#mentor-request-form')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-request-form [name=count]')?.focus({preventScroll:true}); return; }
+    if (action === 'new-event') { if (!canCompetition()) { announce('Competition editing is not enabled for this mentor account.','error'); return; } view = 'competitions'; editor = {}; render(); root.querySelector('.mentor-competition-editor')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-event-form [name=name]')?.focus({preventScroll:true}); return; }
+    if (action === 'edit-event') { const event = data.events.find(row => row.id === button.dataset.id); if (!canEdit(event)) { announce('Practice dates are managed in the team schedule. You can request volunteers for a scheduled date.','error'); return; } view = 'competitions'; editor = {...event}; render(); root.querySelector('.mentor-competition-editor')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-event-form [name=name]')?.focus({preventScroll:true}); return; }
+    if (action === 'open-request') { const event = data.events.find(row => row.id === button.dataset.id); if (!event) return; selectedId = event.id; requestFor = event.id; render(); root.querySelector('#mentor-request-form')?.scrollIntoView({block:'start'}); root.querySelector('#mentor-request-form [name=count]')?.focus({preventScroll:true}); return; }
     if (action === 'select-event') { selectedId = button.dataset.id; rosterQuery = ''; render(); root.querySelector('[data-mentor-roster]')?.scrollIntoView({block:'start',behavior:'smooth'}); }
   },{signal});
 
@@ -299,7 +312,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
       if (['hours','start_time','end_time'].includes(field.name)) updateHoursCalculation(form,field.name === 'hours');
       if (field.name === 'date') form.querySelector('[data-mentor-weekday]').textContent = displayDate(field.value);
     }
-    if (field.id === 'mentor-event-search') { query = field.value; root.querySelector('[data-mentor-event-grid]').innerHTML = competitionCards(); const count = selectMentorEvents(data,{period,school,sort,query}).length; root.querySelector('[data-mentor-event-count]').textContent = `${count} competition${count === 1 ? '' : 's'}`; }
+    if (field.id === 'mentor-event-search') { query = field.value; root.querySelector('[data-mentor-event-grid]').innerHTML = competitionCards(); const count = filteredEvents().length; root.querySelector('[data-mentor-event-count]').textContent = `${count} session${count === 1 ? '' : 's'}`; }
     if (field.id === 'mentor-certificate-search') { certificateQuery = field.value; root.querySelector('[data-mentor-certificate-directory]').innerHTML = certificateDirectory(); }
     if (field.id === 'mentor-roster-search') { rosterQuery = field.value; const event = selected(); if (event) root.querySelector('[data-mentor-roster-rows]').innerHTML = rosterRows(event); }
   },{signal});
@@ -308,10 +321,11 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     const field = event.target;
     if (field.closest('[data-mentor-edit-form]')) { dirty = true; syncStatus(); }
     if (field.name === 'auto_hours') updateHoursCalculation(field.form);
-    const filters = ['mentor-period','mentor-school','mentor-sort','mentor-certificate-status','mentor-request-status'];
+    const filters = ['mentor-period','mentor-type','mentor-school','mentor-sort','mentor-certificate-status','mentor-request-status'];
     if (!filters.includes(field.id)) return;
-    if (hasDraft()) { announce('Save or cancel your open form before changing this view.', 'error'); if (field.id === 'mentor-period') field.value = period; if (field.id === 'mentor-school') field.value = school; if (field.id === 'mentor-sort') field.value = sort; return; }
+    if (hasDraft()) { announce('Save or cancel your open form before changing this view.', 'error'); if (field.id === 'mentor-period') field.value = period; if (field.id === 'mentor-type') field.value = type; if (field.id === 'mentor-school') field.value = school; if (field.id === 'mentor-sort') field.value = sort; return; }
     if (field.id === 'mentor-period') { period = field.value; selectedId = ''; }
+    if (field.id === 'mentor-type') { type = field.value; selectedId = ''; }
     if (field.id === 'mentor-school') { school = field.value; selectedId = ''; }
     if (field.id === 'mentor-sort') sort = field.value;
     if (field.id === 'mentor-certificate-status') certificateFilter = field.value;
@@ -327,8 +341,11 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     if (form.id === 'mentor-request-form') {
       const count = Number(values.get('count')), hasRoles = eventRoles(form.dataset.session).length > 0, role = hasRoles ? String(values.get('role') || '').trim() : '';
       if (!Number.isInteger(count) || count < 1 || count > 100 || hasRoles && !role) { announce('Enter 1–100 volunteers and choose a role.', 'error'); return; }
-      await mutate(() => repo.requestVolunteers(form.dataset.session,count,role,String(values.get('note') || '').trim()),'Volunteer request posted.',() => { requestFor = ''; });
+      const event = data.events.find(row => row.id === form.dataset.session);
+      if (!event) { announce('Choose an available session date before requesting volunteers.','error'); return; }
+      await mutate(() => repo.requestVolunteers(event.id,count,role,String(values.get('note') || '').trim()),`Volunteer request posted for ${displayDate(event.date)}.`,() => { requestFor = ''; });
     } else if (form.id === 'mentor-event-form') {
+      if (!canCompetition() || form.dataset.id && !canEdit(data.events.find(event => event.id === form.dataset.id))) { announce('Competition editing is not enabled for this session.','error'); return; }
       updateHoursCalculation(form);
       if (!form.reportValidity()) return;
       try {
@@ -351,6 +368,6 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   },15000);
 
   render();
-  const ready = initialData ? (async () => { loadedAt = new Date(); if (data.mentor.school_scope) school = data.mentor.school_scope; if (repo.scheduleRevision) { try { revision = await repo.scheduleRevision(); } catch {} } syncStatus(); return true; })() : update({silent:true,throwOnError:true});
+  const ready = initialData ? (async () => { loadedAt = new Date(); if (data.mentor.school_scope && !allSchools()) school = data.mentor.school_scope; if (repo.scheduleRevision) { try { revision = await repo.scheduleRevision(); } catch {} } syncStatus(); return true; })() : update({silent:true,throwOnError:true});
   return {ready,update,destroy() { destroyed = true; controller.abort(); clearInterval(timer); root.classList.remove('mentor-host'); root.removeAttribute('aria-busy'); }};
 }

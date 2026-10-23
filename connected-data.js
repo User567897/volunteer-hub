@@ -19,6 +19,8 @@ export function createRepository(client){
   closeVolunteerRequest(id){return operation('hub_close_volunteer_request',{p_id:id});},
   volunteerRequests(){return operation('hub_volunteer_requests');},
   adminMentors(){return operation('hub_admin_mentors');},
+  saveMentor(slug,payload){return operation('hub_admin_save_mentor',{p_slug:slug||null,p_data:payload});},
+  logAttendance(session,people,hours,role,note){return operation('hub_log_attendance',{p_session:session,p_people:people,p_hours:hours??null,p_role:role||null,p_note:note||''});},
   resetMentorCode(slug){return operation('hub_admin_reset_mentor_code',{p_slug:slug});},
   updateMentorEmail(slug,email){return operation('hub_admin_update_mentor_email',{p_slug:slug,p_email:email});},
   async load(){
