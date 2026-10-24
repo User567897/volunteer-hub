@@ -12,6 +12,7 @@ export function createRepository(client){
  async function rows(table,query=x=>x){const result=await query(client.from(table).select('*'));if(result.error)throw result.error;return (result.data||[]).filter(row=>visibleRecord(table,row));}
  async function operation(name,args){const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
  return {
+  async slack(body){const {data,error}=await client.functions.invoke('slack-events',{body});if(error){let message='Slack connection is not available yet. Ask an administrator to finish setup.';try{const detail=await error.context.json();message=detail.error||detail.reason||message;}catch{}throw Error(message);}return data;},
   mentorStatus(){return operation('hub_mentor_status');},
   loadMentor(){return operation('hub_mentor_workspace');},
   saveMentorEvent(id,payload){return operation('hub_mentor_save_event',{p_id:id||null,p_data:payload});},

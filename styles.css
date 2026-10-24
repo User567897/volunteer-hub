@@ -276,3 +276,13 @@ body{min-height:100dvh;background:radial-gradient(ellipse at 90% 0%,#6c503126 0,
 .connected-shell .mentor-access-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
 .connected-shell .mentor-access-grid .connected-date{min-width:0;overflow-wrap:anywhere}
 .connected-shell .mentor-access-code input{max-width:240px}
+.connected-shell .slack-event-workspace{display:grid;grid-template-columns:minmax(220px,310px) minmax(0,1fr);gap:24px;margin:24px 0}
+.connected-shell .slack-event-picker,.connected-shell .slack-event-detail{min-width:0}
+.connected-shell .slack-event-list{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px;max-height:650px;overflow-y:auto}
+.connected-shell .slack-event-list .event-choice{width:100%;display:grid;gap:7px;text-align:left;padding:17px;border:1px solid #49414e;border-radius:15px;white-space:normal;overflow-wrap:anywhere}
+.connected-shell .slack-event-list .event-choice[aria-pressed=true]{border-color:#d6bd7d;background:#d6bd7d12}
+.connected-shell .slack-event-list strong{font-size:14px}.connected-shell .slack-event-list span,.connected-shell .slack-event-list small{font-size:12px;line-height:1.5}
+.connected-shell .slack-event-detail{border-top:0;padding-top:0}.connected-shell .slack-event-detail .notice{padding:20px;margin-top:18px}
+.connected-shell .slack-event-detail details{margin:16px 0}.connected-shell .slack-event-detail summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.connected-shell .slack-message-preview{overflow-wrap:anywhere;line-height:1.75}
+@media(max-width:650px){.connected-shell .slack-event-workspace{grid-template-columns:1fr;gap:18px}.connected-shell .slack-event-list{max-height:310px}.connected-shell .slack-event-detail .notice{padding:16px}}
