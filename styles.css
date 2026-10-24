@@ -286,3 +286,9 @@ body{min-height:100dvh;background:radial-gradient(ellipse at 90% 0%,#6c503126 0,
 .connected-shell .slack-event-detail details{margin:16px 0}.connected-shell .slack-event-detail summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
 .connected-shell .slack-message-preview{overflow-wrap:anywhere;line-height:1.75}
 @media(max-width:650px){.connected-shell .slack-event-workspace{grid-template-columns:1fr;gap:18px}.connected-shell .slack-event-list{max-height:310px}.connected-shell .slack-event-detail .notice{padding:16px}}
+
+/* Time-sensitive volunteer requests use the existing gold accent. */
+.connected-shell .priority-badge,.mentor-workspace .priority-badge{display:inline-block;border:1px solid #cfa75b;background:#b3873526;color:#f5dca4;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:650;line-height:1.5;margin-bottom:9px;white-space:normal}
+.connected-shell .dashboard-card-grid .priority-request,.mentor-workspace .priority-request{border-color:#cfa75b;background:linear-gradient(120deg,#b387351c,transparent 70%),#202126}
+.connected-shell .priority-credit{color:#e8c883;font-size:13px;line-height:1.6}.connected-shell .volunteer-needs{margin-bottom:28px}.connected-shell .volunteer-needs .section-head{margin-top:18px}.connected-shell .more-requests summary{cursor:pointer;min-height:44px;display:flex;align-items:center}.connected-shell [data-signup-credit]{flex-basis:100%;min-width:0}.connected-shell [data-submission-credit]:empty{display:none}
+@media(max-width:650px){.connected-shell .priority-badge,.mentor-workspace .priority-badge{max-width:100%;box-sizing:border-box}.connected-shell .volunteer-needs .section-head{align-items:flex-start;gap:8px}.connected-shell .volunteer-needs .section-head>span{font-size:13px}}

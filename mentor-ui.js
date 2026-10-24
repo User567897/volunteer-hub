@@ -1,3 +1,4 @@
+import {isPriorityRequest,sortPriorityRequests,signupCreditMultiplier} from './priority-requests.js?v=20261024-coach-priority';
 import {followsDuration, updateHoursCalculation} from './event-hours.js?v=20261021';
 
 const escape = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
@@ -138,7 +139,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
         <p class="mentor-date">${escape(displayDate(event.date))}</p><p>${escape(timeRange(event))}</p>
         ${event.location ? `<p class="mentor-location">${escape(event.location)}</p>` : ''}
         <div class="mentor-card-foot"><span><strong>${signed}${capacity > 0 ? ` / ${capacity}` : ''}</strong> volunteers</span><span>${need === null ? 'Open capacity' : need ? `${need} spots open` : 'Full'}</span></div>
-        ${requests.length ? `<span class="mentor-request-marker">${requests.length} open volunteer request${requests.length === 1 ? '' : 's'}</span>` : ''}
+        ${requests.some(r=>isPriorityRequest(r))?'<span class="priority-badge">Priority · 2× hours for new sign-ups</span>':''}${requests.length ? `<span class="mentor-request-marker">${requests.length} open volunteer request${requests.length === 1 ? '' : 's'}</span>` : ''}
       </article>`;
     }).join('') : `<div class="mentor-empty"><h3>No sessions found</h3><p>Try another date, type, or school filter.</p></div>`;
   }
@@ -147,7 +148,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     const rows = data.signups.filter(signup => signup.session_id === event.id && activeSignup(signup) && [person(signup.person_id)?.name,person(signup.person_id)?.grade,signup.role,signup.status].join(' ').toLowerCase().includes(rosterQuery.toLowerCase())).sort((a,b) => (person(a.person_id)?.name || '').localeCompare(person(b.person_id)?.name || ''));
     return rows.length ? rows.map(signup => {
       const student = person(signup.person_id);
-      return `<tr><td><strong>${escape(student?.name || 'Volunteer')}</strong><small>${student?.grade ? `Grade ${escape(student.grade)}` : 'Grade not listed'}</small></td><td>${escape(signup.role || 'Volunteer')}</td><td><span class="mentor-badge ${signup.status === 'Required' ? 'pending' : signup.status === 'Cancelled' ? 'danger' : ''}">${escape(signup.status)}</span></td><td><div class="mentor-certificate-badges">${badges(signup.person_id)}</div></td></tr>`;
+      return `<tr><td><strong>${escape(student?.name || 'Volunteer')}</strong><small>${student?.grade ? `Grade ${escape(student.grade)}` : 'Grade not listed'}</small></td><td>${escape(signup.role || 'Volunteer')}</td><td><span class="mentor-badge ${signup.status === 'Required' ? 'pending' : signup.status === 'Cancelled' ? 'danger' : ''}">${escape(signup.status)}</span>${signupCreditMultiplier(signup)===2?'<span class="priority-badge">2× hours earned</span>':''}</td><td><div class="mentor-certificate-badges">${badges(signup.person_id)}</div></td></tr>`;
     }).join('') : '<tr><td colspan="4" class="mentor-empty-cell">No volunteers match this roster.</td></tr>';
   }
 
@@ -157,15 +158,15 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
     return `<section class="mentor-form-panel" aria-labelledby="mentor-request-title"><div class="mentor-section-heading"><h3 id="mentor-request-title">Request volunteers</h3><button type="button" class="mentor-icon-button" data-mentor-action="cancel-request" aria-label="Cancel volunteer request">${icon('close')}</button></div>
       <div class="mentor-date-focus"><p class="mentor-eyebrow">${escape(schoolName(event))} · ${escape(sessionLabel(event))}</p><strong>${escape(event.name)}</strong><p>${escape(displayDate(event.date))}</p><p>${escape(timeRange(event))}</p><small>${mentorSessionType(event) === 'Mentorship' ? 'This practice date only — not the whole series.' : 'This event date only.'}</small></div><form data-mentor-edit-form id="mentor-request-form" data-session="${escape(event.id)}">
       <div class="mentor-form-pair"><label>Additional volunteers<input name="count" type="number" inputmode="numeric" min="1" max="100" step="1" value="1" required></label><label>Role${roles.length ? `<select name="role">${roles.map(role => `<option value="${escape(role.name)}">${escape(role.name)}</option>`).join('')}</select>` : '<input name="role" value="Volunteer" readonly><span class="mentor-field-hint">No separate roles are set for this event.</span>'}</label></div>
-      <label>Note to students<textarea name="note" rows="3" maxlength="1000" placeholder="Where to meet, what to bring, or who can help"></textarea></label><div class="mentor-form-actions"><button type="submit" class="mentor-primary">${icon('people')}Post volunteer request</button><button type="button" data-mentor-action="cancel-request">Cancel</button></div></form></section>`;
+      <p class="mentor-fine">Requests within 48 hours of the start offer double hours to first-time sign-ups for the requested role.</p><label>Note to students<textarea name="note" rows="3" maxlength="1000" placeholder="Where to meet, what to bring, or who can help"></textarea></label><div class="mentor-form-actions"><button type="submit" class="mentor-primary">${icon('people')}Post volunteer request</button><button type="button" data-mentor-action="cancel-request">Cancel</button></div></form></section>`;
   }
 
   function requestCards(requests, compact=false) {
-    return requests.length ? requests.map(request => {
+    return requests.length ? sortPriorityRequests(requests).map(request => {
       const event = data.events.find(row => row.id === request.session_id);
       const remaining = requestRemaining(request), fulfilled = openRequest(request) && remaining === 0;
       const amount = openRequest(request) ? remaining : Number(request.needed_count), roleLabel = request.role && request.role !== 'Volunteer' ? `${escape(request.role)} volunteer${amount === 1 ? '' : 's'}` : `volunteer${amount === 1 ? '' : 's'}`;
-      return `<article class="mentor-request-card"><div class="mentor-card-meta"><span>${escape(event ? schoolName(event) : '')}</span><span class="mentor-badge ${openRequest(request) && !fulfilled ? 'pending' : 'success'}">${fulfilled ? 'Filled' : escape(request.status || 'Open')}</span></div>
+      return `<article class="mentor-request-card ${isPriorityRequest(request)?'priority-request':''}">${isPriorityRequest(request)?'<span class="priority-badge">Priority · 2× hours for new sign-ups</span>':''}<div class="mentor-card-meta"><span>${escape(event ? schoolName(event) : '')}</span><span class="mentor-badge ${openRequest(request) && !fulfilled ? 'pending' : 'success'}">${fulfilled ? 'Filled' : escape(request.status || 'Open')}</span></div>
         <h3>${openRequest(request) ? `${remaining} more` : escape(request.needed_count)} ${roleLabel}</h3><p class="mentor-fine">${fulfilled ? 'The requested spots are filled.' : openRequest(request) ? `${remaining} still needed · ${escape(request.needed_count)} originally requested` : `${escape(request.needed_count)} originally requested`}</p>
         ${!compact ? `<p><strong>${escape(event?.name || 'School session')}</strong></p>` : ''}<div class="mentor-request-date"><p>${escape(displayDate(event?.date))} · ${escape(event ? timeRange(event) : 'Time to be confirmed')}</p><small>${event && mentorSessionType(event) === 'Mentorship' ? 'This practice date only' : 'This event date only'}</small></div>
         ${request.note ? `<p class="mentor-request-note">${escape(request.note)}</p>` : ''}<p class="mentor-fine">${escape(request.mentor_name || data.mentor.name)}${request.created_at ? ` · ${escape(displayDate(String(request.created_at).slice(0,10)))}` : ''}</p>
@@ -363,7 +364,7 @@ export function mountMentor(root, {repo,onSignOut,initialData} = {}) {
   const timer = setInterval(async () => {
     if (destroyed || busy || refreshing || document.hidden || hasDraft() || fieldFocused()) return;
     if (typeof repo.scheduleRevision !== 'function') { await update({silent:true}); return; }
-    try { const next = await repo.scheduleRevision(); if (destroyed) return; if (revision === undefined) revision = next; else if (JSON.stringify(next) !== JSON.stringify(revision)) await update({silent:true}); }
+    try { const next = await repo.scheduleRevision(); if (destroyed) return; const priorityBoundaryChanged=data.requests.some(request=>Boolean(request.is_priority)!==isPriorityRequest({...request,is_priority:true})); if (revision === undefined) revision = next; if (priorityBoundaryChanged || JSON.stringify(next) !== JSON.stringify(revision)) await update({silent:true}); }
     catch { /* Explicit refresh surfaces network errors; background checks preserve the current view. */ }
   },15000);
 
