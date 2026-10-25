@@ -48,3 +48,86 @@
 .mentor-workspace .mentor-request-date{padding:11px 0;border-top:1px solid #544450;border-bottom:1px solid #544450;margin:13px 0}
 .mentor-workspace .mentor-request-date>p{color:#ddc5eb;font-size:12px;line-height:1.7;margin:0}.mentor-workspace .mentor-request-date>small{display:block;color:#b8a8bf;font-size:10px;margin-top:5px}
 @media(max-width:600px){.mentor-workspace .mentor-date-focus{padding:17px 15px}.mentor-workspace .mentor-date-focus>strong{font-size:16px}.mentor-workspace .mentor-date-focus>p{font-size:13px}}
+
+/* Compact mentor workspace: summaries first, details only when requested. */
+.mentor-workspace .mentor-section-heading{margin-bottom:16px}
+.mentor-workspace .mentor-session-tools{display:flex;flex-wrap:wrap;align-items:start;gap:10px;margin-bottom:12px}
+.mentor-workspace .mentor-session-tools>.mentor-search-label{flex:1 1 240px}
+.mentor-workspace .mentor-filters{flex:0 1 auto;min-width:108px;border:1px solid #4f4956;border-radius:12px;background:#1a1d23}
+.mentor-workspace .mentor-filters>summary{min-height:48px;padding:12px 16px;cursor:pointer;color:#d9cbdc;font-weight:550}
+.mentor-workspace .mentor-filters[open]{flex:1 1 100%}
+.mentor-workspace .mentor-filters>.mentor-filter-bar{padding:0 14px 14px;margin:0;gap:10px}
+.mentor-workspace .mentor-filter-bar>label{flex:1 1 150px;min-width:0}
+.mentor-workspace .mentor-event-grid{grid-template-columns:1fr;gap:10px;margin-bottom:12px}
+.mentor-workspace .mentor-event-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:16px 18px;border-radius:16px;background:#202126;box-shadow:none}
+.mentor-workspace .mentor-event-card:nth-child(n){background:#202126;border-color:#4b424f}
+.mentor-workspace .mentor-event-card.mentor-next-session{border-color:#a68b58}
+.mentor-workspace .mentor-event-card.is-selected{border-color:#d4b471;box-shadow:0 0 0 1px #c5a36330}
+.mentor-workspace .mentor-card-meta{margin-bottom:6px;font-size:10px;gap:8px;justify-content:flex-start}
+.mentor-workspace .mentor-event-card h3{font-size:17px;margin:0 0 5px;overflow-wrap:anywhere}
+.mentor-workspace .mentor-event-card p{font-size:12px;line-height:1.5;margin-top:4px}
+.mentor-workspace .mentor-event-card .mentor-capacity{color:#b7acbf;font-size:11px}
+.mentor-workspace .mentor-session-actions{display:flex;flex-direction:column;gap:3px;align-items:stretch}
+.mentor-workspace .mentor-session-actions button{min-height:42px;padding:9px 13px;font-size:12px;white-space:nowrap}
+.mentor-workspace .mentor-session-actions .mentor-secondary{background:transparent;border-color:transparent;color:#c1b5cd;box-shadow:none}
+.mentor-workspace .mentor-session-actions .mentor-secondary:hover{background:#302d36;color:#f4e8fa}
+.mentor-workspace .mentor-show-more{grid-column:1/-1;text-align:center;margin:12px 0 20px}
+.mentor-workspace .mentor-show-more:empty{display:none}
+.mentor-workspace .mentor-roster,.mentor-workspace .mentor-form-panel{padding:20px;margin:0 0 18px;border-radius:18px;scroll-margin-top:16px}
+.mentor-workspace .mentor-roster-heading-actions{display:flex;align-items:center;gap:16px;flex:0 0 auto}
+.mentor-workspace .mentor-roster-total>strong{font-size:26px}
+.mentor-workspace .mentor-roster-total>small{font-size:10px}
+.mentor-workspace .mentor-roster-actions{margin:14px 0;gap:8px}
+.mentor-workspace .mentor-role-summary{margin:14px 0;gap:8px}
+.mentor-workspace .mentor-role-summary>span{padding:9px 11px}
+.mentor-workspace .mentor-roster-filter{margin:14px 0 10px}
+.mentor-workspace .mentor-table-scroll{overflow:visible;overscroll-behavior:auto;border-radius:12px}
+.mentor-workspace table{min-width:0;table-layout:fixed}
+.mentor-workspace td,.mentor-workspace th{padding:11px;overflow-wrap:anywhere}
+.mentor-workspace td:first-child{min-width:0}
+.mentor-workspace .mentor-certificate-badges{max-width:none}
+.mentor-workspace .mentor-date-focus{padding:12px 14px;margin:0 0 16px;border-radius:12px}
+.mentor-workspace .mentor-date-focus>strong{font-size:16px;margin:4px 0}
+.mentor-workspace .mentor-date-focus>p{font-size:12px;line-height:1.5}
+.mentor-workspace .mentor-date-focus>small{margin-top:5px;font-size:10px}
+.mentor-workspace .mentor-form-panel form{gap:14px}
+.mentor-workspace .mentor-form-panel .mentor-section-heading{margin-bottom:14px}
+.mentor-workspace .mentor-request-grid,.mentor-workspace .mentor-student-grid{gap:10px;margin-top:14px}
+.mentor-workspace .mentor-request-card{padding:16px 18px;border-radius:16px}
+.mentor-workspace .mentor-request-card h3{font-size:17px;margin-bottom:6px}
+.mentor-workspace .mentor-request-card p{margin:5px 0}
+.mentor-workspace .mentor-request-date{padding:0;border:0;margin:6px 0;font-size:12px}
+.mentor-workspace details.mentor-student-card{padding:0;border-radius:16px;background:#202126;box-shadow:none;align-self:start}
+.mentor-workspace .mentor-student-card>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;padding:16px 18px;color:#f5f1e9}
+.mentor-workspace .mentor-student-card>summary::-webkit-details-marker{display:none}
+.mentor-workspace .mentor-student-card>summary strong{display:block;font-size:15px;overflow-wrap:anywhere}
+.mentor-workspace .mentor-student-card>summary small{display:block;font-size:11px;color:#b9afbf;margin-top:4px}
+.mentor-workspace .mentor-expand-label{font-size:11px;color:#d0b7e9}
+.mentor-workspace .mentor-student-card[open] .mentor-expand-label{font-size:0}
+.mentor-workspace .mentor-student-card[open] .mentor-expand-label:after{content:'Close';font-size:11px}
+.mentor-workspace .mentor-student-details{padding:0 18px 16px}
+.mentor-workspace .mentor-certification{padding:13px 0 0;margin-top:0}
+.mentor-workspace details>summary:focus-visible{outline:3px solid #efc871;outline-offset:3px;border-radius:12px}
+@media(max-width:600px){
+ .mentor-workspace header.mentor-topbar{margin-bottom:18px}
+ .mentor-workspace .mentor-section-heading{gap:10px}
+ .mentor-workspace h1{font-size:27px}
+ .mentor-workspace .mentor-event-card{grid-template-columns:1fr;gap:10px;padding:14px;border-radius:14px}
+ .mentor-workspace .mentor-session-actions{flex-direction:row;gap:8px}
+ .mentor-workspace .mentor-session-actions button{flex:1;min-height:44px;white-space:normal;padding:9px 8px}
+ .mentor-workspace .mentor-roster,.mentor-workspace .mentor-form-panel{padding:16px 14px}
+ .mentor-workspace .mentor-roster .mentor-section-heading{flex-wrap:wrap}
+ .mentor-workspace .mentor-roster-heading-actions{margin-left:auto}
+ .mentor-workspace .mentor-roster h2{font-size:19px}
+ .mentor-workspace .mentor-role-summary>span{flex:1 1 120px}
+ .mentor-workspace .mentor-table-scroll{border:0}
+ .mentor-workspace table,.mentor-workspace tbody{display:block;width:100%}
+ .mentor-workspace thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+ .mentor-workspace tr{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;padding:12px 0;border-top:1px solid #4a414c}
+ .mentor-workspace td{display:block;padding:0;border:0;font-size:12px}
+ .mentor-workspace td:first-child,.mentor-workspace td:last-child{grid-column:1/-1}
+ .mentor-workspace td[data-label]:before{content:attr(data-label);display:block;font-size:9px;color:#ad9db5;margin-bottom:3px}
+ .mentor-workspace .mentor-empty-cell{grid-column:1/-1;padding:14px 0}
+ .mentor-workspace .mentor-student-card>summary{padding:14px}
+ .mentor-workspace .mentor-student-details{padding:0 14px 14px}
+}
