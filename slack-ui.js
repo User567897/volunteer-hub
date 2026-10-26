@@ -7,6 +7,13 @@ const normalized = value => String(value ?? '').trim().toLocaleLowerCase('en-US'
 const asList = value => Array.isArray(value) ? value : [];
 const today = () => new Intl.DateTimeFormat('en-CA', {timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
+function messageDraft(value) {
+  // Recognize only the backend's literal leading mention before decoding fields.
+  const text = String(value ?? '').replace(/^<!channel>/,'@channel');
+  const decoded = text.replace(/&(lt|gt|amp);/g, (_, entity) => ({lt:'<',gt:'>',amp:'&'}[entity]));
+  return decoded;
+}
+
 function validDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value || '') && !Number.isNaN(new Date(`${value}T12:00:00Z`).getTime()) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
 }
@@ -137,7 +144,11 @@ export function renderSlackPanel(adminRecords = {}, state = {}) {
   const current = channels.get(selected?.id);
   const preview = selected && state.preview?.event?.id === selected.id ? state.preview : null;
   const hash = typeof preview?.preview_hash === 'string' ? preview.preview_hash.trim() : '';
-  const canSync = connected && !busy && preview?.connected === true && preview.can_sync === true && Boolean(hash);
+  const storedDraft = selected && Object.hasOwn(state.drafts || {},selected.id);
+  const draft = selected ? storedDraft ? state.drafts[selected.id] : preview?.custom_message ?? messageDraft(preview?.message) : '';
+  const hasEditor = Boolean(preview || storedDraft);
+  const reviewed = Boolean(preview && state.reviewedDraft?.sessionId === selected?.id && state.reviewedDraft.text === draft && state.reviewedDraft.version === (state.draftVersions?.[selected?.id] || 0));
+  const canSync = connected && !busy && reviewed && preview?.connected === true && preview.can_sync === true && Boolean(hash) && Boolean(String(draft).trim());
   const connectionLabel = connected ? 'Slack connected' : state.status ? 'Slack not connected' : busy ? 'Checking Slack connection…' : 'Slack connection not checked';
   return `<section class="slack-admin-panel">
     <div class="section-head"><div><h3>Slack</h3><p><span class="status-chip">${connectionLabel}</span> · Private event channels</p><p>Choose an event, review the message, then send.</p></div><button type="button" id="slack-refresh" ${busy ? 'disabled' : ''}>${busy ? 'Working…' : 'Check connection'}</button></div>
@@ -145,14 +156,16 @@ export function renderSlackPanel(adminRecords = {}, state = {}) {
     ${syncResult(state.result,adminRecords,state.directory)}
     <div class="slack-event-workspace"><nav class="slack-event-picker" aria-label="Upcoming Slack events"><h4>Upcoming · ${events.length}</h4>
     ${events.length ? `<ol class="slack-event-list">${events.map(event => `<li><button type="button" class="event-choice" data-slack-select="${esc(event.id)}" aria-pressed="${event.id === selected?.id}" ${busy ? 'disabled' : ''}><strong>${esc(event.name)}</strong><span>${esc(dateLabel(event.date))}</span><small>${esc(sessionTime(event))} · ${event.signup_count} signed up</small></button></li>`).join('')}</ol>` : '<p>No upcoming events with signups.</p>'}</nav>
-    ${selected ? `<article class="slack-event-detail connected-date" aria-label="Selected Slack event"><div class="section-head"><div><h3>${esc(selected.name)}</h3><p>${esc(dateLabel(selected.date))} · ${esc(sessionTime(selected))} Eastern</p><p>${esc(selected.location || 'Place TBD')}</p><p>Wear Avenger apparel</p></div>${!preview ? `<button type="button" data-slack-preview="${esc(selected.id)}" ${!connected || busy ? 'disabled' : ''}>Review message</button>` : ''}</div>
+    ${selected ? `<article class="slack-event-detail connected-date" aria-label="Selected Slack event"><div class="section-head"><div><h3>${esc(selected.name)}</h3><p>${esc(dateLabel(selected.date))} · ${esc(sessionTime(selected))} Eastern</p><p>${esc(selected.location || 'Place TBD')}</p><p>Wear Avenger apparel</p></div>${!hasEditor ? `<button type="button" data-slack-preview="${esc(selected.id)}" ${!connected || busy ? 'disabled' : ''}>Review message</button>` : ''}</div>
       <p>Channel: ${current?.channel_name ? `#${esc(current.channel_name)}` : connected ? 'Not created' : 'Not checked'}${current?.state ? ` · ${esc(stateLabel(current.state))}` : ''} ${channelLink(current?.channel_url)}</p>${current?.last_synced_at && syncedLabel(current.last_synced_at) ? `<p class="muted">Last sent: ${esc(syncedLabel(current.last_synced_at))}</p>` : ''}${current?.last_error ? `<p class="error">${esc(current.last_error)}</p>` : ''}
       <details open><summary>Signed up (${selected.signup_count})</summary>${memberList('Volunteers',selected.roster,adminRecords,state.directory)}</details>
-      ${preview ? `<section class="notice"><h4>Message preview${preview.channel?.name ? ` · #${esc(preview.channel.name)}` : ''}</h4>${preview.connected === false ? `<p class="error">${esc(preview.reason || 'Slack is not connected.')}</p>` : ''}${asList(preview.reasons).length ? `<ul>${preview.reasons.map(reason => `<li>${esc(reason)}</li>`).join('')}</ul>` : ''}
-      ${preview.message ? `<p class="slack-message-preview">${esc(preview.message).replace(/\r?\n/g,'<br>')}</p>` : ''}
-      <details><summary>Channel members and changes</summary><p>Signed-up volunteers, you, and the Volunteer Hub bot.</p>${memberList('Invite',preview.invite,adminRecords,state.directory)}${memberList('Remove from channel',preview.remove,adminRecords,state.directory)}${asList(preview.unknown_members).length ? memberList('Other channel members',preview.unknown_members,adminRecords,state.directory) : ''}</details>
-      ${asList(preview.missing_mappings).length ? memberList('Students without a Slack mapping',preview.missing_mappings,adminRecords,state.directory) : ''}${asList(preview.invalid_mappings).length ? memberList('Mappings to review',preview.invalid_mappings,adminRecords,state.directory) : ''}
-      <button type="button" class="primary" data-slack-sync="${esc(selected.id)}" ${canSync ? `data-preview-hash="${esc(hash)}"` : 'disabled'}>${preview.channel?.id || current?.channel_id ? 'Update Slack message' : 'Send to Slack'}</button></section>` : ''}
+      ${hasEditor ? `<section class="notice"><h4>Message${preview?.channel?.name ? ` · #${esc(preview.channel.name)}` : ''}</h4>
+      <label>Edit message<textarea id="slack-message-draft" data-session="${esc(selected.id)}" rows="5" maxlength="3000" aria-describedby="slack-draft-status" style="width:100%;resize:vertical" ${state.loading === 'Updating private channel' ? 'disabled' : ''}>${esc(draft)}</textarea></label>
+      <p id="slack-draft-status" class="muted" role="status">${reviewed ? canSync ? 'Reviewed. Ready to send.' : 'Message reviewed. Resolve any blockers before sending.' : 'Review changes before sending.'}</p>
+      <div class="form-actions"><button type="button" data-slack-preview="${esc(selected.id)}" ${!connected || busy || !String(draft).trim() ? 'disabled' : ''}>Review changes</button><button type="button" class="primary" data-slack-sync="${esc(selected.id)}" ${canSync ? `data-preview-hash="${esc(hash)}"` : 'disabled'}>${preview?.channel?.id || current?.channel_id ? 'Update Slack message' : 'Send to Slack'}</button></div>
+      ${preview?.connected === false ? `<p class="error">${esc(preview.reason || 'Slack is not connected.')}</p>` : ''}${asList(preview?.reasons).length ? `<ul>${preview.reasons.map(reason => `<li>${esc(reason)}</li>`).join('')}</ul>` : ''}
+      ${preview ? `<details><summary>Channel members and changes</summary><p>Signed-up volunteers, you, and the Volunteer Hub bot.</p>${memberList('Invite',preview.invite,adminRecords,state.directory)}${memberList('Remove from channel',preview.remove,adminRecords,state.directory)}${asList(preview.unknown_members).length ? memberList('Other channel members',preview.unknown_members,adminRecords,state.directory) : ''}</details>
+      ${asList(preview.missing_mappings).length ? memberList('Students without a Slack mapping',preview.missing_mappings,adminRecords,state.directory) : ''}${asList(preview.invalid_mappings).length ? memberList('Mappings to review',preview.invalid_mappings,adminRecords,state.directory) : ''}` : ''}</section>` : ''}
     </article>` : ''}</div>
     ${mappingPanel(adminRecords,state,connected,busy)}
   </section>`;
